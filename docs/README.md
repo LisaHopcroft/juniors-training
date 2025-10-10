@@ -14,7 +14,7 @@ I'd suggest the usual - 45 seconds on, 15 seconds off. You can challenge yoursel
    - Increase the challenge: single leg (each side) or add weight
 2. **[Inchworms](https://www.youtube.com/watch?v=pv_8CdDPAAk)**
    - Increase the challenge: add a push up at full stretch
-3. **[Push up](https://www.youtube.com/watch?v=pv_8CdDPAAk)**
+3. **[Push up](https://www.youtube.com/watch?v=WDIpL0pjun0)**
    - Increase the challenge: find a more challenging format
 4. **[V sit hold](https://www.youtube.com/watch?v=3tQuBuZLma4)**
    - Increase the challenge: stretch further out
