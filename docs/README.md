@@ -24,7 +24,7 @@ I'd suggest the usual - 45 seconds on, 15 seconds off. You can challenge yoursel
    - Increase the challenge: 
 7. **[Prayer squat hold](https://www.youtube.com/watch?v=YVi7iDyTs4g)**
    - Increase the challenge: add a torso twist and reach to the ceiling
-8. **[Tricep dips](https://www.youtube.com/watch?v=YVi7iDyTs4g)**
+8. **[Tricep dips](https://www.youtube.com/watch?v=y4gHJ8OjxTg)**
    - Increase the challenge: use an elevated surface to lower yourself further
 9. **[Leg raises](https://www.youtube.com/watch?v=Wp4BlxcFTkE)**
    - Increase the challenge: add a crunch at the top
