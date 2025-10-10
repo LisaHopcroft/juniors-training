@@ -10,7 +10,7 @@ This circuit is a full body circuit, that targets legs, arms, abs and mobility. 
 
 I'd suggest the usual - 45 seconds on, 15 seconds off. You can challenge yourself either by finding a more challenging variation of the exercise, or by increasing each station to 1 minute on, 20 second off or similar. Some suggestions for more challenging variations are included below.
 
-1. **[Glute bridge](https://www.youtube.com/watch?v=Xp33YgPZgns)**
+1. **[Glute bridge](https://www.youtube.com/watch?v=Xp33YgPZgns)** 
    - Increase the challenge: single leg (each side) or add weight
 2. **[Inchworms](https://www.youtube.com/watch?v=pv_8CdDPAAk)**
    - Increase the challenge: add a push up at full stretch
@@ -18,17 +18,17 @@ I'd suggest the usual - 45 seconds on, 15 seconds off. You can challenge yoursel
    - Increase the challenge: find a more challenging format
 4. **[V sit hold](https://www.youtube.com/watch?v=3tQuBuZLma4)**
    - Increase the challenge: stretch further out
-5. **Personalised exercise (1)**
-   - refer to instructions elsewhere
+5. 🎯 **Personalised exercise (1)** 🎯 
+   - I'll send you this via Spond
 6. **[Reverse lunge (alternating)](https://www.youtube.com/watch?v=xrPteyQLGAo)**
-   - Increase the challenge: 
+   - Increase the challenge: use small weights if you have them
 7. **[Prayer squat hold](https://www.youtube.com/watch?v=YVi7iDyTs4g)**
    - Increase the challenge: add a torso twist and reach to the ceiling
 8. **[Tricep dips](https://www.youtube.com/watch?v=y4gHJ8OjxTg)**
    - Increase the challenge: use an elevated surface to lower yourself further
 9. **[Leg raises](https://www.youtube.com/watch?v=Wp4BlxcFTkE)**
    - Increase the challenge: add a crunch at the top
-10. **Personalised exercise (2)**
-   - refer to instructions elsewhere
+10. 🎯  **Personalised exercise (2)** 🎯 
+    - I'll send you this via Spond
 
 Repeat at least twice.
