@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
 from datetime import datetime
+import configparser
+
 from src.juniors_utils import to_seconds, to_mmss
 
-sheet_id = "1igFBt2iMfQsXcVREcXIUasYige-uSRTah6rqEfFvsls"
 output_dir = "img/"
 
 now = datetime.now()
@@ -15,6 +16,12 @@ now_readable = now.strftime("%Y-%m-%d")
 now_string = now.strftime("%y%m%d")
 bench_name = "BENCH 500m"
 bench_string = bench_name.replace(" ", "_")
+
+config = configparser.ConfigParser()
+config.optionxform = str  # keep the key's capitalisation (the default lowercases keys)
+config.read("config.ini")
+
+sheet_id = config["sheets"][bench_name]
 
 gc = gspread.service_account(filename="service_account.json")
 sh = gc.open_by_key(sheet_id)  # the long string in the sheet's URL
@@ -113,4 +120,3 @@ for junior, data in intervals.groupby("Junior"):
     ax.legend(loc="best")
     fig.tight_layout()
     fig.savefig(f"{output_dir}/{now_string}_{junior}_{bench_string}.png", dpi=150)
-
