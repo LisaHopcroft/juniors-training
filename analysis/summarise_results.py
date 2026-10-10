@@ -141,13 +141,15 @@ for junior, data in intervals.groupby("Junior"):
     )
 
     ax.set_title(f"{junior}: {bench_name} ({now_readable})")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Split (min:sec per 500m)")
+    ax.set_xlabel("Date", fontweight="bold")
+    ax.set_ylabel("Split (min:sec per 500m)", fontweight="bold")
+    ax.set_xlim(pd.Timestamp("2026-09-01"), pd.Timestamp("2027-07-01"))
 
     # y values as m:ss
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: to_mmss(x)))
 
     # Tidy date axis
+    ax.xaxis.set_major_locator(mdates.MonthLocator())
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m/%y"))
     fig.autofmt_xdate()
 
