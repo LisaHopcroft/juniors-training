@@ -92,10 +92,15 @@ for junior, data in intervals.groupby("Junior"):
     cbar.set_ticks(sorted(data["Interval"].dropna().unique()))
 
     # Session mean line across dates
-    mean_by_date = data.groupby("Date")["Split secs"].mean().sort_index()
+    summary_by_date = (
+        data.groupby("Date")["Split secs"]
+		.agg(mean="mean", best="min")
+        .sort_index()
+	)
+
     ax.plot(
-        mean_by_date.index,
-        mean_by_date.values,
+        summary_by_date.index,
+        summary_by_date["mean"],
         color="black",
         marker="D",
         markersize=6,
@@ -105,15 +110,45 @@ for junior, data in intervals.groupby("Junior"):
         zorder=2,
     )
 
+    # Label each session mean with its date, mean and best split
+    for date, row in summary_by_date.iterrows():
+        ax.annotate(
+            f"{date:%d %b %Y}\nMean {to_mmss(row['mean'])}\nBest {to_mmss(row['best'])}",
+            xy=(date, row["mean"]),
+			xytext=(-15, 0),  # offset in points; adjust to taste
+			textcoords="offset points",
+			ha="right",
+			fontsize=8,
+			bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="grey", alpha=0.8),
+			zorder=4,
+        )
+
+    ax.plot(
+        summary_by_date.index,
+        # summary_by_date["best"],
+        summary_by_date["best"].cummin(),
+        color="crimson",
+        marker="o",
+        markersize=12,
+        markerfacecolor="none",  # hollow ring, so the interval colour shows through
+        markeredgecolor="crimson",
+        markeredgewidth=1.5,
+        linewidth=1.5,
+        linestyle="--",
+        alpha=0.8,
+        label="Season best",
+        zorder=4,
+    )
+
     ax.set_title(f"{junior}: {bench_name} ({now_readable})")
     ax.set_xlabel("Date")
     ax.set_ylabel("Split (min:sec per 500m)")
 
-    # y values as m:ss, faster (lower) splits higher up
+    # y values as m:ss
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: to_mmss(x)))
 
     # Tidy date axis
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m/%y"))
     fig.autofmt_xdate()
 
     ax.grid(alpha=0.3)
