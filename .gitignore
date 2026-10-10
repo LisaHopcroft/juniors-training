@@ -1,0 +1,12 @@
+# Google Sheets API key
+service_account.json
+
+# Python
+venv/
+__pycache__
+
+# VScode
+.vscode/
+
+# Output
+img/
