@@ -8,6 +8,7 @@ import gspread
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from gspread.utils import rowcol_to_a1
 from matplotlib.ticker import FuncFormatter
 
@@ -302,70 +303,6 @@ def plot_segments_per_junior(
     fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150, bbox_inches="tight")
     plt.close(fig)
 
-    ### add a second axis
-    ax2 = ax.twinx()
-
-    for i, (date, session) in enumerate(data.groupby("date")):
-        session = session.sort_values("measurement")
-        colour = cmap(i / (n_dates - 1) if n_dates > 1 else 0.5)
-
-        mean_split = session["split secs"].mean()
-        best_split = session["split secs"].min()
-
-        # Split time — left axis
-        ax.plot(
-			session["measurement"],
-			session["split secs"],
-			marker="o",
-			markersize=5,
-			linewidth=1.2,
-			color=colour,
-			alpha=0.85,
-			label=(
-				f"{date:%d %b %Y} "
-				f"(mean {to_mmss(mean_split)}, best {to_mmss(best_split)})"
-			),
-			zorder=3,
-		)
-
-        # Stroke rate — right axis
-        ax2.plot(
-            session["measurement"],
-            session["spm"],
-            marker="^",
-            markersize=4,
-            linewidth=1,
-            linestyle=":",
-            color=colour,
-            alpha=0.8,
-            label=f"{date:%d %b %Y} SPM",
-            zorder=3,
-        )
-
-    ax.set_ylabel("Split (min:sec per 500m)", fontweight="bold")
-    ax2.set_ylabel("Stroke rate (SPM)", fontweight="bold")
-
-    ax2.tick_params(axis="y", labelcolor="tab:blue")
-    ax2.spines["right"].set_color("tab:blue")
-    ax2.yaxis.label.set_color("tab:blue")
-
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: to_mmss(x)))
-
-    lines1, labels1 = ax.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-
-    ax.legend(
-        lines1 + lines2,
-        labels1 + labels2,
-        loc="center left",
-        bbox_to_anchor=(1.15, 0.5),
-        fontsize=8,
-    )
-
-    filename = f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}_segments2.png"
-    fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150, bbox_inches="tight")
-    plt.close(fig)
-
     ### --------------------------------------------------------- ###
     ### PLOT 2: Boxplot per date
     ### --------------------------------------------------------- ###
@@ -391,9 +328,9 @@ def plot_segments_per_junior(
     by_date_list = data.groupby("date")["split secs"].apply(list)
 
     positions = [
-		mdates.date2num(date) + 0
-		for date in by_date.index
-	]
+        mdates.date2num(date) + 0
+        for date in by_date.index
+    ]
 
     ax.boxplot(
         by_date_list.tolist(),
@@ -470,6 +407,85 @@ def plot_segments_per_junior(
 
     filename = f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}_summary-over-time.png"
     fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150)
+    plt.close(fig)
+
+    ### --------------------------------------------------------- ###
+    ### PLOT 3: SPM v split time
+    ### --------------------------------------------------------- ###
+
+    # Get the dates in order
+    dates = sorted(data["date"].dropna().unique())
+
+    colours = plt.get_cmap("tab10", len(dates))
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    for i, date in enumerate(dates):
+        session = data[data["date"] == date].copy()
+
+        x = session["spm"]
+        y = session["split secs"]
+
+        valid = x.notna() & y.notna()
+        x = x[valid]
+        y = y[valid]
+
+        colour = colours(i)
+        date_label = pd.Timestamp(date).strftime("%d %b %Y")
+
+        # Scatter points for this date
+        ax.scatter(
+            x,
+            y,
+            color=colour,
+            s=60,
+            alpha=0.8,
+            edgecolor="white",
+            linewidth=0.5,
+            label=date_label,
+        )
+
+        # Line of best fit for this date, using the same colour
+        if len(x) >= 2 and x.nunique() >= 2:
+            slope, intercept = np.polyfit(x, y, 1)
+
+            x_fit = np.linspace(x.min(), x.max(), 100)
+            y_fit = slope * x_fit + intercept
+
+            ax.plot(
+                x_fit,
+                y_fit,
+                color=colour,
+                linestyle="--",
+                linewidth=2,
+            )
+
+    # Labels and formatting
+    ax.set_title(
+        f"{junior}: {test_name} — SPM vs Split ({date_stamp})"
+    )
+    ax.set_xlabel("Stroke rate (SPM)", fontweight="bold")
+    ax.set_ylabel("Split (min:sec per 500m)", fontweight="bold")
+
+    ax.yaxis.set_major_formatter(
+        FuncFormatter(lambda x, _: to_mmss(x))
+    )
+
+    ax.grid(alpha=0.3)
+    ax.legend(title="Date", loc="best")
+
+    fig.tight_layout()
+
+    filename = (
+        f"{file_stamp}_{junior}_"
+        f"{test_name.replace(' ', '_')}_spm-vs-split.png"
+    )
+
+    fig.savefig(
+        os.path.join(OUTPUT_DIR, filename),
+        dpi=150,
+        bbox_inches="tight",
+    )
     plt.close(fig)
 
 
