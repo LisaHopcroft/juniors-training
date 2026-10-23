@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from gspread.utils import rowcol_to_a1
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from src.juniors_utils import to_mmss, to_seconds
 
@@ -87,6 +87,15 @@ def prepare_intervals(df):
     return intervals
 
 
+def extract_times(df):
+    """Keep overall times only (Total rows only) and convert column types."""
+    totals = df[df["measurement"].astype(str) == "Total"].copy()
+
+    totals["time"] = totals["time decimal"]
+    totals["date"] = pd.to_datetime(totals["date"], format="%d/%m/%Y")
+    return totals[["junior","date","time","spm"]].reset_index()
+
+
 def extract_high_resolution_data(df):
     """Pick out the high-resolution columns and convert their types.
 
@@ -125,14 +134,24 @@ def extract_high_resolution_data(df):
         ]
     ]
 
-def summarise_by_junior(intervals):
+def summarise_by_junior(intervals, test_name):
     """Mean and best split per junior, in seconds and mm:ss."""
-    summary = intervals.groupby("junior")["split secs"].agg(
-        mean_split="mean", best_split="min"
+    summary = (
+        intervals.groupby(["junior", "date"])["split secs"]
+        .agg(mean_split="mean", best_split="min")
+        .reset_index()
     )
+
     summary["mean_split (mm:ss)"] = summary["mean_split"].apply(to_mmss)
     summary["best_split (mm:ss)"] = summary["best_split"].apply(to_mmss)
-    return summary
+    summary["test"] = test_reporting_name(test_name)
+
+    return summary.sort_values(
+        ["junior", "test", "date"],
+        ascending=[True, True, False]
+    ).set_index(["junior", "test"])[
+        ["date", "mean_split (mm:ss)", "best_split (mm:ss)"]
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +244,7 @@ def plot_intervals_per_junior(junior, data, test_name, vmin, vmax, date_stamp, f
     fig.tight_layout()
 
     filename = f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}_summary-over-time.png"
-    fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150)
+    fig.savefig(os.path.join(OUTPUT_DIR, junior, filename), dpi=150)
     plt.close(fig)
 
 
@@ -267,25 +286,27 @@ def plot_segments_per_junior(
             zorder=3,
         )
 
-    # Mean and best split at each measurement, across all sessions
-    by_measurement = (
-        data.groupby("measurement")["split secs"]
-        .agg(mean="mean", best="min")
-        .sort_index()
-    )
+    # Draw the mean and best summary only when more than two dates are present
+    if n_dates > 1:
+        # Mean and best split at each measurement, across all sessions
+        by_measurement = (
+            data.groupby("measurement")["split secs"]
+            .agg(mean="mean", best="min")
+            .sort_index()
+        )
 
-    ax.plot(
-        by_measurement.index,
-        by_measurement["mean"],
-        color="black",
-        marker="D",
-        markersize=6,
-        linewidth=2,
-        linestyle="--",
-        alpha=0.7,
-        label="Mean (all sessions)",
-        zorder=4,
-    )
+        ax.plot(
+            by_measurement.index,
+            by_measurement["mean"],
+            color="black",
+            marker="D",
+            markersize=6,
+            linewidth=2,
+            linestyle="--",
+            alpha=0.7,
+            label="Mean (all sessions)",
+            zorder=4,
+        )
 
     ax.set_title(f"{junior}: {test_name} ({date_stamp})")
     ax.set_xlabel("Measurement", fontweight="bold")
@@ -300,7 +321,7 @@ def plot_segments_per_junior(
     fig.tight_layout()
 
     filename = f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}_segments.png"
-    fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150, bbox_inches="tight")
+    fig.savefig(os.path.join(OUTPUT_DIR, junior, filename), dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     ### --------------------------------------------------------- ###
@@ -406,7 +427,7 @@ def plot_segments_per_junior(
     fig.tight_layout()
 
     filename = f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}_summary-over-time.png"
-    fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150)
+    fig.savefig(os.path.join(OUTPUT_DIR, junior, filename), dpi=150)
     plt.close(fig)
 
     ### --------------------------------------------------------- ###
@@ -467,6 +488,7 @@ def plot_segments_per_junior(
     ax.set_xlabel("Stroke rate (SPM)", fontweight="bold")
     ax.set_ylabel("Split (min:sec per 500m)", fontweight="bold")
 
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax.yaxis.set_major_formatter(
         FuncFormatter(lambda x, _: to_mmss(x))
     )
@@ -482,7 +504,7 @@ def plot_segments_per_junior(
     )
 
     fig.savefig(
-        os.path.join(OUTPUT_DIR, filename),
+        os.path.join(OUTPUT_DIR, junior, filename),
         dpi=150,
         bbox_inches="tight",
     )
@@ -500,18 +522,35 @@ def repeated_intervals_over_time(test_name):
     file_stamp = now.strftime("%y%m%d")
 
     df = fetch_table(test_name)
-    print(df)
 
     intervals = prepare_intervals(df)
-    print(summarise_by_junior(intervals))
+    interval_results = summarise_by_junior(intervals, test_name)
+
+    # interval_results[ "test" ] = test_reporting_name( test_name )
 
     # Same colour scale for every junior, so colours mean the same on every plot
     vmin, vmax = intervals["interval"].min(), intervals["interval"].max()
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
     for junior, data in intervals.groupby("junior"):
+        os.makedirs(os.path.join(OUTPUT_DIR, junior), exist_ok=True)
         plot_intervals_per_junior(junior, data, test_name, vmin, vmax, date_stamp, file_stamp)
 
+    return interval_results.reset_index()
+
+def test_reporting_name(s,s_out = "Unrecognised test"):
+
+    if s == "BENCH 1k":
+        s_out = "1k"
+    elif s == "BENCH 2k":
+        s_out = "2k"
+    elif s == "BENCH 500m":
+        s_out = "4 x 500m"
+    elif s == "BENCH MAX 1m":
+        s_out = "MAX 1m"
+    elif s == "BENCH MAX 30s":
+        s_out = "MAX 30s"
+
+    return s_out
 
 def high_resolution_plots(test_name):
     """Plot high resolution data (i.e., one interval, broken into segments),
@@ -525,22 +564,61 @@ def high_resolution_plots(test_name):
     file_stamp = now.strftime("%y%m%d")
 
     df = fetch_table(test_name)
-    print(df)
 
     segments = extract_high_resolution_data(df)
+    totals = extract_times(df)
+    # totals[ "test" ] = test_reporting_name( test_name )
 
-    print(segments)
-
-    print(summarise_by_junior(segments))
+    segment_results = summarise_by_junior(segments, test_name)
+    
+    overall_results = (
+        segment_results.reset_index()
+        .merge(totals, on=["junior", "date"], how="left")
+        # .set_index(["junior", "test"])
+        .drop(columns=["index"])
+    )
 
     # Same colour scale for every junior, so colours mean the same on every plot
     vmin, vmax = segments["measurement"].min(), segments["measurement"].max()
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
     for junior, data in segments.groupby("junior"):
+        os.makedirs(os.path.join(OUTPUT_DIR, junior), exist_ok=True)
         plot_segments_per_junior(junior, data, test_name, vmin, vmax, date_stamp, file_stamp)
 
+    return overall_results[[
+        "junior",
+        "test",
+        "date",
+        "time",
+        "spm",
+        "mean_split (mm:ss)",
+        "best_split (mm:ss)",	]
+    ]
+
+def format_whatsapp(df, columns):
+
+    test_str = df["test"][0]
+
+    df = df.rename(columns={"mean_split (mm:ss)": "mean", "best_split (mm:ss)": "best"})
+    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%-d %b")
+
+    lines = ["", f"🚣 *{test_str} erg results*", ""]
+
+    df = df.set_index(["junior", "test"])
+
+    for index, row in df[columns].iterrows():
+
+        details = " | ".join(
+            f"{col}: {str(row[col])}" for col in columns
+        )
+
+        lines.append(f"*{index[0]} | {index[1]}*\n{details}")
+
+    return "\n".join(lines)
 
 if __name__ == "__main__":
-    # repeated_intervals_over_time("BENCH 500m")
-    high_resolution_plots("BENCH 1k")
+    results_500m = repeated_intervals_over_time("BENCH 500m")
+    results_1k   = high_resolution_plots("BENCH 1k")
+
+    print( format_whatsapp(results_500m,["date","mean","best"]) )
+    print( format_whatsapp(results_1k,["date","time","spm","mean","best"]) )
