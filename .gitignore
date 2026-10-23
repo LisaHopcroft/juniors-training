@@ -1,6 +1,7 @@
 # Config
 config.ini
 service_account.json
+.DS_Store
 
 # Python
 venv/
