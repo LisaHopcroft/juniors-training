@@ -223,7 +223,7 @@ def plot_intervals_per_junior(junior, data, test_name, vmin, vmax, date_stamp, f
     ax.legend(loc="best")
     fig.tight_layout()
 
-    filename = f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}.png"
+    filename = f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}_summary-over-time.png"
     fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150)
     plt.close(fig)
 
@@ -280,6 +280,7 @@ def plot_segments_per_junior(
         marker="D",
         markersize=6,
         linewidth=2,
+        linestyle="--",
         alpha=0.7,
         label="Mean (all sessions)",
         zorder=4,
@@ -301,6 +302,70 @@ def plot_segments_per_junior(
     fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150, bbox_inches="tight")
     plt.close(fig)
 
+    ### add a second axis
+    ax2 = ax.twinx()
+
+    for i, (date, session) in enumerate(data.groupby("date")):
+        session = session.sort_values("measurement")
+        colour = cmap(i / (n_dates - 1) if n_dates > 1 else 0.5)
+
+        mean_split = session["split secs"].mean()
+        best_split = session["split secs"].min()
+
+        # Split time — left axis
+        ax.plot(
+			session["measurement"],
+			session["split secs"],
+			marker="o",
+			markersize=5,
+			linewidth=1.2,
+			color=colour,
+			alpha=0.85,
+			label=(
+				f"{date:%d %b %Y} "
+				f"(mean {to_mmss(mean_split)}, best {to_mmss(best_split)})"
+			),
+			zorder=3,
+		)
+
+        # Stroke rate — right axis
+        ax2.plot(
+            session["measurement"],
+            session["spm"],
+            marker="^",
+            markersize=4,
+            linewidth=1,
+            linestyle=":",
+            color=colour,
+            alpha=0.8,
+            label=f"{date:%d %b %Y} SPM",
+            zorder=3,
+        )
+
+    ax.set_ylabel("Split (min:sec per 500m)", fontweight="bold")
+    ax2.set_ylabel("Stroke rate (SPM)", fontweight="bold")
+
+    ax2.tick_params(axis="y", labelcolor="tab:blue")
+    ax2.spines["right"].set_color("tab:blue")
+    ax2.yaxis.label.set_color("tab:blue")
+
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: to_mmss(x)))
+
+    lines1, labels1 = ax.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+
+    ax.legend(
+        lines1 + lines2,
+        labels1 + labels2,
+        loc="center left",
+        bbox_to_anchor=(1.15, 0.5),
+        fontsize=8,
+    )
+
+    filename = f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}_segments2.png"
+    fig.savefig(os.path.join(OUTPUT_DIR, filename), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
     ### --------------------------------------------------------- ###
     ### PLOT 2: Boxplot per date
     ### --------------------------------------------------------- ###
@@ -308,27 +373,41 @@ def plot_segments_per_junior(
     fig, ax = plt.subplots(figsize=(8, 5))
 
     # Points coloured by interval number
-    sc = ax.scatter(
+    ax.scatter(
         data["date"],
         data["split secs"],
-        c=data["measurement"],
-        cmap="viridis",
-        vmin=vmin,
-        vmax=vmax,
         s=60,
         alpha=0.9,
         edgecolor="white",
         linewidth=0.5,
-        zorder=3,
+        zorder=2,
     )
-    cbar = fig.colorbar(sc, ax=ax, label="Segment")
-    cbar.set_ticks(sorted(data["measurement"].dropna().unique()))
 
     # Mean and best split for each session date
     by_date = (
         data.groupby("date")["split secs"].agg(mean="mean", best="min").sort_index()
     )
 
+    by_date_list = data.groupby("date")["split secs"].apply(list)
+
+    positions = [
+		mdates.date2num(date) + 0
+		for date in by_date.index
+	]
+
+    ax.boxplot(
+        by_date_list.tolist(),
+        positions=positions,
+        widths=12,
+        patch_artist=True,
+        showfliers=False,
+        manage_ticks=False,
+        boxprops=dict(facecolor="lightblue", alpha=0.5),
+        medianprops=dict(color="black", linewidth=1.5),
+        whiskerprops=dict(color="steelblue"),
+        capprops=dict(color="steelblue"),
+        zorder=1,
+    )
     # Session mean line across dates
     ax.plot(
         by_date.index,
@@ -339,7 +418,7 @@ def plot_segments_per_junior(
         linewidth=1.5,
         alpha=0.7,
         label="Session mean",
-        zorder=2,
+        zorder=3,
     )
 
     # Label each session mean with its date, mean and best split
@@ -375,7 +454,7 @@ def plot_segments_per_junior(
     ax.set_title(f"{junior}: {test_name} ({date_stamp})")
     ax.set_xlabel("Date", fontweight="bold")
     ax.set_ylabel("Split (min:sec per 500m)", fontweight="bold")
-    # ax.set_xlim(*X_LIMITS)
+    ax.set_xlim(*X_LIMITS)
 
     # y values as m:ss
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: to_mmss(x)))
