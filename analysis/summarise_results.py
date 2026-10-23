@@ -25,18 +25,17 @@ X_LIMITS = (pd.Timestamp("2026-09-01"), pd.Timestamp("2027-07-01"))
 # ---------------------------------------------------------------------------
 # Loading data
 # ---------------------------------------------------------------------------
-def get_sheet_id(test_name, config_file=CONFIG_FILE):
+def get_sheet_id(config_file=CONFIG_FILE):
     """Look up the spreadsheet ID for a test in the config file."""
     config = configparser.ConfigParser()
     config.optionxform = str  # keep key capitalisation (default lowercases keys)
     config.read(config_file)
-    return config["sheets"][test_name]
-
+    return config["sheets"]["id"]
 
 def fetch_table(test_name):
     """Return the Google Sheets table called `test_name` as a DataFrame."""
     gc = gspread.service_account(filename=CREDENTIALS_FILE)
-    sh = gc.open_by_key(get_sheet_id(test_name))
+    sh = gc.open_by_key(get_sheet_id())
 
     meta = sh.fetch_sheet_metadata(
         {"fields": "sheets(properties(sheetId,title),tables)"}
