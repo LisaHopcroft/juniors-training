@@ -431,7 +431,95 @@ def plot_segments_per_junior(
     plt.close(fig)
 
     ### --------------------------------------------------------- ###
-    ### PLOT 3: SPM v split time
+    ### PLOT 3: Boxplot per date
+    ### --------------------------------------------------------- ###
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    # Points coloured by interval number
+    ax.scatter(
+        data["date"],
+        data["spm"],
+        s=60,
+        alpha=0.9,
+        edgecolor="white",
+        linewidth=0.5,
+        zorder=2,
+    )
+
+    # Mean
+    by_spm = (
+        data.groupby("date")["spm"].agg(mean="mean").sort_index()
+    )
+
+    by_spm_list = data.groupby("date")["spm"].apply(list)
+
+    positions = [mdates.date2num(date) + 0 for date in by_date.index]
+
+    ax.boxplot(
+        by_spm_list.tolist(),
+        positions=positions,
+        widths=12,
+        patch_artist=True,
+        showfliers=False,
+        manage_ticks=False,
+        boxprops=dict(facecolor="lightblue", alpha=0.5),
+        medianprops=dict(color="black", linewidth=1.5),
+        whiskerprops=dict(color="steelblue"),
+        capprops=dict(color="steelblue"),
+        zorder=1,
+    )
+    # Session mean line across dates
+    ax.plot(
+        by_spm.index,
+        by_spm["mean"],
+        color="black",
+        marker="D",
+        markersize=6,
+        linewidth=1.5,
+        alpha=0.7,
+        label="Session mean",
+        zorder=3,
+    )
+
+    # Label each session mean with its date, mean and best split
+    for date, row in by_spm.iterrows():
+        ax.annotate(
+            f"{date:%d %b %Y}\nMean {row['mean']}",
+            xy=(date, row["mean"]),
+            xytext=(-15, 0),  # offset in points; adjust to taste
+            textcoords="offset points",
+            ha="right",
+            fontsize=8,
+            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="grey", alpha=0.8),
+            zorder=4,
+        )
+
+    ax.set_title(f"{junior}: {test_name} ({date_stamp})")
+    ax.set_xlabel("Date", fontweight="bold")
+    ax.set_ylabel("SPM", fontweight="bold")
+    ax.set_xlim(*X_LIMITS)
+
+    # # y values as m:ss
+    # ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: to_mmss(x)))
+
+    # Tidy date axis
+    ax.xaxis.set_major_locator(mdates.MonthLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m/%y"))
+    fig.autofmt_xdate()
+
+    ax.grid(alpha=0.3)
+    ax.legend(loc="best")
+    fig.tight_layout()
+
+    filename = (
+        f"{file_stamp}_{junior}_{test_name.replace(' ', '_')}_spm-over-time.png"
+    )
+    fig.savefig(os.path.join(OUTPUT_DIR, junior, filename), dpi=150)
+    plt.close(fig)
+
+    ### --------------------------------------------------------- ###
+    ### PLOT 4: SPM v split time
     ### --------------------------------------------------------- ###
 
     # Get the dates in order
